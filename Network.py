@@ -60,8 +60,11 @@ class Network(object):
                 for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
+
             if test_data:
-                print ("Epoch {0}: {1} / {2}".format(j, self.evaluate(test_data), n_test))
+                # evaluate returns a 
+                print ("Epoch {0}: {1} / {4} sum:{2}, probables:{3})"
+                        .format(j, *self.evaluate(test_data), n_test))
             else:
                 print ("Epoch {0} complete".format(j))
 
@@ -116,14 +119,30 @@ class Network(object):
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
         return (nabla_b, nabla_w)
 
-    def evaluate(self, test_data):
+    def evaluate(self, test_data, n_percent=99.95):
         """Return the number of test inputs for which the neural
         network outputs the correct result. Note that the neural
         network's output is assumed to be the index of whichever
         neuron in the final layer has the highest activation."""
-        test_results = [(np.argmax(self.feedforward(x)), y)
-                        for (x, y) in test_data]
-        return sum(int(x == y) for (x, y) in test_results)
+        
+        #test_results = [(np.argmax(self.feedforward(x)), y)
+        #                for (x, y) in test_data]
+
+        sum=total=probables=0
+        for x, y in test_data:
+            output = self.feedforward(x)
+            val = np.argmax(output)
+            max = np.max(output)
+            total += np.sum(output)
+
+            # were there any probable digits that were close to highest
+            probables  += len(output[(max - output)/max > n_percent/100])
+
+            sum += int(val==y)
+
+        tlen = len(test_data)
+        # return average std and probables
+        return sum, total/tlen, probables/tlen
 
     def cost_derivative(self, output_activations, y):
         """Return the vector of partial derivatives \partial C_x /
